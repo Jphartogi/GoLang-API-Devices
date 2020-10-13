@@ -1,8 +1,9 @@
 package routes
 
 import (
+	"api/auth"
+	"api/database"
 	"api/helpers"
-	"api/token"
 	"encoding/json"
 	"errors"
 	"log"
@@ -11,7 +12,6 @@ import (
 	"time"
 
 	"github.com/joho/godotenv"
-	uuid "github.com/satori/go.uuid"
 )
 
 // User is struct type for anyone who use the API
@@ -26,12 +26,6 @@ type User struct {
 // ResponseMessage is standard format for welcoming message
 type ResponseMessage struct {
 	Message string
-}
-
-// NewDevice struct data type for creating device
-type NewDevice struct {
-	DeviceID  uuid.UUID
-	CreatedAt time.Time
 }
 
 // use godot package to load/read the .env file and
@@ -62,14 +56,15 @@ func Home(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// TokenHandler function to handle request in token realm
-func TokenHandler(w http.ResponseWriter, r *http.Request) {
-
+// RegisterHandler function to handle registering new devices
+func RegisterHandler(w http.ResponseWriter, r *http.Request) {
+	// Check if method is not correct
 	if r.Method != "POST" {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
 	}
-	var x token.Device
+	var x auth.NewDevice
+	// Check if the request is already as requested
 	err := helpers.DecodeJSONBody(w, r, &x)
 	if err != nil {
 		var mr *helpers.MalformedRequest
@@ -82,20 +77,38 @@ func TokenHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if x.DeviceName == "" {
+	if x.DeviceName == "" || x.Username == "" || x.Email == "" || x.Password == "" {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
-
-	signedToken, expiredTime, err := token.Generator(&x)
+	signedToken, expiredTime, err := auth.TokenGenerator(&x)
 
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		panic(err)
 	}
 
-	data := token.TokenMessage{
-		Message:    "Successfully generated Token",
+	//Password hashing
+	_, pass, err := auth.HashPassword(&x)
+
+	//Update password
+	x.Password = pass
+
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		panic(err)
+	}
+
+	// Add file to database
+	errors := database.AddToDB(&x)
+
+	if errors != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		panic(err)
+	}
+
+	data := auth.Message{
+		Message:    "Successfully registered devices",
 		DeviceInfo: x,
 		Token:      signedToken,
 		CreatedAt:  time.Now().Local(),
@@ -110,26 +123,4 @@ func TokenHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write(response)
-}
-
-// UUIDHandler is a func who generate new UUID for new devices
-func UUIDHandler(w http.ResponseWriter, r *http.Request) {
-	uuid, err := uuid.NewV4()
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		panic(err)
-	}
-	response := NewDevice{
-		DeviceID:  uuid,
-		CreatedAt: time.Now().Local()}
-
-	UUIDResponse, err := json.Marshal(response)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		panic(err)
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	w.Write(UUIDResponse)
-
 }

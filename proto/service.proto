@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package proto;
+
+message Device {
+    string DeviceID = 1;
+}
+
+message AuthResponse {
+    string Token = 1;
+}
+
+service AddService {
+    rpc Register(Device) returns (AuthResponse);
+}
