@@ -16,6 +16,7 @@ func requestHandle() {
 	myRoutes := mux.NewRouter()
 	myRoutes.HandleFunc("/api/v1/", routes.Home).Methods("GET")
 	myRoutes.HandleFunc("/api/v1/register/devices", routes.RegisterHandler).Methods("POST")
+	myRoutes.HandleFunc("/api/v1/get/devices", routes.GetDeviceInfoHandler).Methods("GET")
 
 	myRoutes.HandleFunc("/", routes.Home).Methods("GET")
 

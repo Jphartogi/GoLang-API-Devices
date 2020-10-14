@@ -1,10 +1,14 @@
 package database
 
 import (
-	"api/auth"
+	"api/global"
 	"context"
+	"errors"
 	"log"
 	"time"
+
+	uuid "github.com/satori/go.uuid"
+	"go.mongodb.org/mongo-driver/bson"
 
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -35,8 +39,8 @@ func NewDBContext(d time.Duration) (context.Context, context.CancelFunc) {
 }
 
 //AddToDB is a function to add new data to database
-func AddToDB(device *auth.NewDevice) error {
-	uuid := auth.UUIDGenerator()
+func AddToDB(device *global.NewDevice) error {
+	uuid := UUIDGenerator()
 	device.DeviceID = uuid.String()
 	device.CreatedAt = time.Now().Local()
 	_, err := DB.Collection("devices").InsertOne(context.Background(), *device)
@@ -44,4 +48,47 @@ func AddToDB(device *auth.NewDevice) error {
 		log.Fatalln("Error on inserting new devices", err)
 	}
 	return nil
+}
+
+// UUIDGenerator is a func who generate new UUID for new devices
+func UUIDGenerator() uuid.UUID {
+	uuid, err := uuid.NewV4()
+	if err != nil {
+		panic(err)
+	}
+	return uuid
+
+}
+
+//RetrieveDeviceData function to get the data from Database and implement filter
+func RetrieveDeviceData(filter bson.M) ([]*global.DeviceList, error) {
+	var dlist []*global.DeviceList
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel() // releases resources if slowOperation completes before timeout elapses
+	cur, err := DB.Collection("devices").Find(ctx, filter)
+	if err != nil {
+		log.Fatal("Error on finding documents", err)
+	}
+
+	for cur.Next(context.TODO()) {
+		var x global.DeviceList
+		err = cur.Decode(&x)
+		if err != nil {
+			log.Fatal("Error on Decoding the document", err)
+		}
+		dlist = append(dlist, &x)
+	}
+	return dlist, nil
+}
+
+//RetrieveUserData function to get the user data from Database
+func RetrieveUserData(filter bson.M) (global.User, error) {
+	var user global.User
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel() // releases resources if slowOperation completes before timeout elapses
+	err := DB.Collection("devices").FindOne(ctx, filter).Decode(&user)
+	if err != nil {
+		return user, errors.New("Wrong login or password")
+	}
+	return user, nil
 }

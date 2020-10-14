@@ -1,35 +1,19 @@
 package auth
 
 import (
+	"api/database"
+	"api/global"
+	"errors"
+	"log"
 	"os"
 	"time"
 
+	"go.mongodb.org/mongo-driver/bson"
+
 	"github.com/dgrijalva/jwt-go"
 	"github.com/joho/godotenv"
-	uuid "github.com/satori/go.uuid"
 	"golang.org/x/crypto/bcrypt"
 )
-
-// Message is a token struct standard message
-type Message struct {
-	Message    string
-	DeviceInfo NewDevice
-	Token      string
-	CreatedAt  time.Time
-	ExpiredAt  time.Time
-}
-
-// NewDevice struct data type for creating device
-type NewDevice struct {
-	DeviceID   string    `bson:"deviceId"`
-	DeviceName string    `bson:"deviceName"`
-	Username   string    `bson:"userName"`
-	Email      string    `bson:"email"`
-	Password   string    `bson:"password"`
-	Latitude   float32   `bson:"lat"`
-	Longitude  float32   `bson:"long"`
-	CreatedAt  time.Time `bson:"createdAt"`
-}
 
 // use godot package to load/read the .env file and
 // return the value of the key
@@ -49,7 +33,7 @@ func goDotEnvVariable(key string) string {
 var mySigningKey = []byte(goDotEnvVariable("SECRET_KEY"))
 
 // TokenGenerator is to generate a Token to be consumed for API usage
-func TokenGenerator(device *NewDevice) (string, time.Time, error) {
+func TokenGenerator(device *global.NewDevice) (string, time.Time, error) {
 
 	token := jwt.New(jwt.SigningMethodHS256)
 
@@ -71,22 +55,26 @@ func TokenGenerator(device *NewDevice) (string, time.Time, error) {
 	return signedToken, expiredTime, nil
 }
 
-// UUIDGenerator is a func who generate new UUID for new devices
-func UUIDGenerator() uuid.UUID {
-	uuid, err := uuid.NewV4()
-	if err != nil {
-		panic(err)
-	}
-	return uuid
-
-}
-
 // HashPassword is a function to hashed the password of a registered device
-func HashPassword(device *NewDevice) ([]byte, string, error) {
+func HashPassword(device *global.NewDevice) ([]byte, string, error) {
 	pass := &device.Password
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(*pass), 10)
 	if err != nil {
 		panic(err)
 	}
 	return hashedPassword, string(hashedPassword[:]), nil
+}
+
+//AuthorizeUser is function to authorize wheter the user has registered or not
+func AuthorizeUser(user *global.User) (bool, error) {
+	// username, password := user.Username, user.Password
+	result, err := database.RetrieveUserData(bson.M{"userName": user.Username})
+	if err != nil {
+		log.Fatal(err)
+	}
+	if bcrypt.CompareHashAndPassword([]byte(result.Password), []byte(user.Password)) != nil {
+		return false, errors.New("Wrong credentials")
+	}
+
+	return true, nil
 }

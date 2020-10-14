@@ -3,6 +3,7 @@ package routes
 import (
 	"api/auth"
 	"api/database"
+	"api/global"
 	"api/helpers"
 	"encoding/json"
 	"errors"
@@ -11,17 +12,10 @@ import (
 	"os"
 	"time"
 
+	"go.mongodb.org/mongo-driver/bson"
+
 	"github.com/joho/godotenv"
 )
-
-// User is struct type for anyone who use the API
-type User struct {
-	Name        string    `json:"name"`
-	IsMasked    bool      `json:"is_masked"`
-	Image       string    `json:"image"`
-	Temperature float32   `json:"temperature"`
-	CreatedAt   time.Time `json:"created_at"`
-}
 
 // ResponseMessage is standard format for welcoming message
 type ResponseMessage struct {
@@ -56,6 +50,54 @@ func Home(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// GetDeviceInfoHandler for getting the list of devices from the user
+func GetDeviceInfoHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "GET" {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+	var user global.User
+
+	err := helpers.DecodeJSONBody(w, r, &user)
+	if err != nil {
+		var mr *helpers.MalformedRequest
+		if errors.As(err, &mr) {
+			http.Error(w, mr.Msg, mr.Status)
+		} else {
+			log.Println(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		}
+		return
+	}
+
+	// Authorization part
+	if user.Username == "" || user.Password == "" {
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+	result, err := auth.AuthorizeUser(&user)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+	if result {
+		listDevice, err := database.RetrieveDeviceData(bson.M{"userName": user.Username})
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+
+		response, err := json.Marshal(listDevice)
+
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			panic(err)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write(response)
+
+	}
+}
+
 // RegisterHandler function to handle registering new devices
 func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	// Check if method is not correct
@@ -63,7 +105,7 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
 	}
-	var x auth.NewDevice
+	var x global.NewDevice
 	// Check if the request is already as requested
 	err := helpers.DecodeJSONBody(w, r, &x)
 	if err != nil {
@@ -107,7 +149,7 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		panic(err)
 	}
 
-	data := auth.Message{
+	data := global.Message{
 		Message:    "Successfully registered devices",
 		DeviceInfo: x,
 		Token:      signedToken,
