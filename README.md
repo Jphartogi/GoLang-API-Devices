@@ -44,5 +44,5 @@ go run main.go
 ## Then to run the test script
 
 ```
-go test -run main_test.go
+go test -v main_test.go main.go
 ```
