@@ -7,21 +7,31 @@ message DeviceRequest{
     string DeviceName = 1;
     string DeviceCategory = 2;
     string DeviceLocation = 3;
-    string Lat = 4;
-    string Long = 5;
 }
 
 message DeviceSuccessRegister{
-    string DeviceInfo = 1;
+    string DeviceID = 1;
     string DeviceToken = 2;
 }
 
-message SuccessUpdate {
-    string DeviceInfo = 1;
+message DeviceUpdateRequest{
+    string DeviceID = 1;
+    string DeviceName = 2;
+    string DeviceCategory = 3;
+    string DeviceLocation = 4;
 }
 
-message SuccessDelete {
-    string DeviceInfo = 1;
+message DeviceSuccessUpdate {
+    string DeviceID = 1;
+}
+
+message DeviceDeleteRequest{
+    string DeviceID = 1;
+    string DeviceToken = 2;
+}
+
+message DeviceSuccessDelete {
+    string DeviceID = 1;
 }
 
 message UserLoginRequest{
@@ -61,7 +71,7 @@ service APIServices {
     rpc SignUp(UserSignUpRequest) returns (UserSuccessRegister);
     rpc UsernameTaken(UsernameTakenRequest) returns (UsernameisTaken);
     rpc DeleteUser(UserDeleteRequest) returns (UserSuccessDelete);
-    // rpc RegisterDevice(DeviceRequest) returns (DeviceSuccessRegister);
-    // rpc UpdateDevice (DeviceRequest) returns (SuccessUpdate);
-    // rpc DeleteDevice (DeviceRequest) returns (SuccessDelete);
+    rpc RegisterDevice(DeviceRequest) returns (DeviceSuccessRegister);
+    rpc UpdateDevice (DeviceUpdateRequest) returns (DeviceSuccessUpdate);
+    // rpc DeleteDevice (DeviceDeleteRequest) returns (DeviceSuccessDelete);
 }

@@ -17,10 +17,6 @@ type NewDevice struct {
 	DeviceName     string    `bson:"deviceName"`
 	DeviceCategory string    `bson:"deviceCategory"`
 	DeviceLocation string    `bson:"deviceLocation"`
-	Username       string    `bson:"userName"`
-	Email          string    `bson:"email"`
-	Latitude       float32   `bson:"lat"`
-	Longitude      float32   `bson:"long"`
 	CreatedAt      time.Time `bson:"createdAt"`
 }
 

@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"net"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -34,9 +35,13 @@ func (apiServer) Login(_ context.Context, in *proto.UserLoginRequest) (*proto.Us
 
 func (apiServer) SignUp(_ context.Context, input *proto.UserSignUpRequest) (*proto.UserSuccessRegister, error) {
 	username, password := input.GetUsername(), input.GetPassword()
+	if username == "" || password == "" {
+		return &proto.UserSuccessRegister{Message: "Please insert username and password correctly"}, errors.New("Please insert username and password correctly")
+	}
 	var user global.User
 	user.Username = username
 	user.Password = password
+
 	result := database.CheckUsernameAvailability(&user)
 	if !result {
 		return &proto.UserSuccessRegister{Message: "Username is taken"}, errors.New("Username is taken")
@@ -74,16 +79,70 @@ func (apiServer) DeleteUser(_ context.Context, input *proto.UserDeleteRequest) (
 
 }
 
-func requestHandle() {
+func (apiServer) UpdateDevice(_ context.Context, input *proto.DeviceUpdateRequest) (*proto.DeviceSuccessUpdate, error) {
+	id, name, location, category := input.GetDeviceID(), input.GetDeviceName(), input.GetDeviceLocation(), input.GetDeviceCategory()
+	if id == "" {
+		return &proto.DeviceSuccessUpdate{}, errors.New("Please specify the ID of the device")
+	}
+	//TODO search in database first the initial value, so when it is empty, get the initial value
+	var devices global.NewDevice
+	devices.DeviceID = id
+	devices.DeviceName = name
+	devices.DeviceLocation = location
+	devices.DeviceCategory = category
+	_, err := auth.UpdateDevice(&devices)
+	if err != nil {
+		return &proto.DeviceSuccessUpdate{}, err
+	}
+	return &proto.DeviceSuccessUpdate{DeviceID: id}, nil
+}
+
+func (apiServer) RegisterDevice(_ context.Context, input *proto.DeviceRequest) (*proto.DeviceSuccessRegister, error) {
+	deviceName, deviceCategory, deviceLocation := input.GetDeviceName(), input.GetDeviceCategory(), input.GetDeviceLocation()
+	if deviceName == "" || deviceCategory == "" || deviceLocation == "" {
+		return &proto.DeviceSuccessRegister{}, errors.New("Please insert all the required field")
+	}
+	var devices global.NewDevice
+	devices.DeviceName = deviceName
+	devices.DeviceLocation = deviceLocation
+	devices.DeviceCategory = deviceCategory
+	id, token, err := auth.RegisterDevice(&devices)
+	if err != nil {
+		return &proto.DeviceSuccessRegister{}, errors.New("Error in registering the device")
+	}
+	return &proto.DeviceSuccessRegister{DeviceID: id, DeviceToken: token}, nil
+}
+
+// func (apiServer) UpdateDevice(_ context.Context, input *proto.DeviceRequest) (*proto.SuccessUpdate, error) {
+
+// }
+
+// func (apiServer) DeleteDevice(_ context.Context, input *proto.DeviceDeleteRequest) (*proto.SuccessUpdate, error) {
+
+// }
+
+func main() {
 	server := grpc.NewServer()
 	proto.RegisterAPIServicesServer(server, apiServer{})
+	listener, err := net.Listen("tcp", ":5000")
+	if err != nil {
+		log.Fatal("Error creating listener: ", err.Error())
+	}
+	fmt.Println("Start serving grpc in port :5000")
 
+	// for RestAPI request handler
+	go requestHandle()
+	server.Serve(listener)
+
+}
+
+func requestHandle() {
 	const port = 8092
 	fmt.Printf("Server is up and running at port %d ", port)
 	myRoutes := mux.NewRouter()
-	myRoutes.HandleFunc("/api/v1/", routes.Home).Methods("GET")
-	myRoutes.HandleFunc("/api/v1/register/devices", routes.RegisterHandler).Methods("POST")
-	myRoutes.HandleFunc("/api/v1/get/devices", routes.GetDeviceInfoHandler).Methods("GET")
+	// myRoutes.HandleFunc("/api/v1/", routes.Home).Methods("GET")
+	// myRoutes.HandleFunc("/api/v1/register/devices", routes.RegisterHandler).Methods("POST")
+	// myRoutes.HandleFunc("/api/v1/get/devices", routes.GetDeviceInfoHandler).Methods("GET")
 
 	myRoutes.HandleFunc("/", routes.Home).Methods("GET")
 
@@ -91,10 +150,4 @@ func requestHandle() {
 	if err != nil {
 		log.Fatalf("server failed to start: %v", err)
 	}
-}
-
-func main() {
-
-	requestHandle()
-
 }

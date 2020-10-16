@@ -32,7 +32,7 @@ func RetrieveDeviceData(filter bson.M) ([]*global.DeviceList, error) {
 }
 
 //AddDevicesToDB is a function to add new data to database
-func AddDevicesToDB(device *global.NewDevice) error {
+func AddDevicesToDB(device *global.NewDevice) (string, error) {
 	uuid := UUIDGenerator()
 	device.DeviceID = uuid.String()
 	device.CreatedAt = time.Now().Local()
@@ -40,15 +40,34 @@ func AddDevicesToDB(device *global.NewDevice) error {
 	if err != nil {
 		log.Fatalln("Error on inserting new devices", err)
 	}
-	return nil
+	return uuid.String(), nil
+}
+
+//UpdateDeviceOnDB function to update the device on DB
+func UpdateDeviceOnDB(device *global.NewDevice) (bool, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel() // releases resources if slowOperation completes before timeout elapses
+	updateItems := bson.M{
+		"$set": bson.M{
+			"deviceName":     device.DeviceName,
+			"deviceCategory": device.DeviceCategory,
+			"deviceLocation": device.DeviceLocation},
+	}
+	_, err := DB.Collection("devices").UpdateOne(
+		ctx,
+		bson.M{"deviceId": device.DeviceID},
+		updateItems)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+	return true, nil
 }
 
 // UUIDGenerator is a func who generate new UUID for new devices
 func UUIDGenerator() uuid.UUID {
-	uuid, err := uuid.NewV4()
-	if err != nil {
-		panic(err)
-	}
+	uuid := uuid.NewV4()
+
 	return uuid
 
 }

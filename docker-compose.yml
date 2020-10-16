@@ -1,0 +1,23 @@
+
+version: "3"
+services:
+    api:
+        container_name: api-app
+        image: api-app:1.0
+        ports:
+            - 8092:8092
+            - 5000:5000
+        depends_on:
+            - database
+        networks: 
+            - app-network
+    database:
+        container_name: database
+        image: mongo:4.0.20-xenial
+        ports:
+            - 27017:27017
+        networks: 
+            - app-network
+networks:
+    app-network:
+        driver: bridge

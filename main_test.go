@@ -70,3 +70,51 @@ func Test_apiServer_DeleteUser(t *testing.T) {
 	}
 
 }
+
+func Test_apiServer_UpdateDevice(t *testing.T) {
+	database.ConnecttoDB()
+	dummyData := &global.NewDevice{
+		DeviceID:       "e9182e07-8b93-46bd-8bf2-bbae25c44767",
+		DeviceName:     "Air Purifier",
+		DeviceCategory: "Smart Devices",
+		DeviceLocation: "Working Room"}
+	database.DB.Collection("devices").InsertOne(context.Background(), dummyData)
+
+	server := apiServer{}
+	sampleData := &proto.DeviceUpdateRequest{
+		DeviceID:       "e9182e07-8b93-46bd-8bf2-bbae25c44767",
+		DeviceName:     "Air Purifier",
+		DeviceCategory: "Smart Devices",
+		DeviceLocation: "Living Room"}
+
+	wrongData := &proto.DeviceUpdateRequest{
+		DeviceName:     "Air Purifier",
+		DeviceCategory: "Smart Devices",
+		DeviceLocation: "Living Room"}
+
+	_, err := server.UpdateDevice(context.Background(), sampleData)
+	if err != nil {
+		t.Error("1: An error was returned: ", err.Error())
+	}
+	_, err = server.UpdateDevice(context.Background(), wrongData)
+	if err == nil {
+		t.Error("2: No ID handler is not working ")
+	}
+}
+
+func Test_apiServer_RegisterDevice(t *testing.T) {
+	database.ConnecttoDB()
+	server := apiServer{}
+	sampleData := &proto.DeviceRequest{
+		DeviceName:     "Gas Detector",
+		DeviceCategory: "Sensors",
+		DeviceLocation: "Living Room 1"}
+	result, err := server.RegisterDevice(context.Background(), sampleData)
+	if err != nil {
+		t.Error("1: An error was returned: ", err.Error())
+	}
+	if result.DeviceID == "" || result.DeviceToken == "" {
+		t.Error("2: No ID and Token returned ")
+	}
+
+}
