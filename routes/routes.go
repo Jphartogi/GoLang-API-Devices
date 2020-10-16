@@ -119,22 +119,11 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if x.DeviceName == "" || x.Username == "" || x.Email == "" || x.Password == "" {
+	if x.DeviceName == "" || x.Username == "" || x.Email == "" {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
-	signedToken, expiredTime, err := auth.TokenGenerator(&x)
-
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		panic(err)
-	}
-
-	//Password hashing
-	_, pass, err := auth.HashPassword(&x)
-
-	//Update password
-	x.Password = pass
+	signedToken, expiredTime, err := auth.DeviceTokenGenerator(&x)
 
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -142,7 +131,7 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Add file to database
-	errors := database.AddToDB(&x)
+	errors := database.AddDevicesToDB(&x)
 
 	if errors != nil {
 		w.WriteHeader(http.StatusInternalServerError)

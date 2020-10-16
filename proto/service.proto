@@ -2,14 +2,66 @@ syntax = "proto3";
 
 package proto;
 
-message Device {
-    string DeviceID = 1;
+
+message DeviceRequest{
+    string DeviceName = 1;
+    string DeviceCategory = 2;
+    string DeviceLocation = 3;
+    string Lat = 4;
+    string Long = 5;
 }
 
-message AuthResponse {
+message DeviceSuccessRegister{
+    string DeviceInfo = 1;
+    string DeviceToken = 2;
+}
+
+message SuccessUpdate {
+    string DeviceInfo = 1;
+}
+
+message SuccessDelete {
+    string DeviceInfo = 1;
+}
+
+message UserLoginRequest{
+    string Username = 1;
+    string Password = 2;
+}
+
+message UsernameTakenRequest{
+    string Username = 1;
+}
+
+message UserDeleteRequest{
+    string Username = 1;
+}
+
+message UsernameisTaken{
+    bool status = 1;
+}
+message UserSignUpRequest{
+    string Username = 1;
+    string Password = 2;
+}
+message UserAuthResponse {
     string Token = 1;
 }
 
-service AddService {
-    rpc Register(Device) returns (AuthResponse);
+message UserSuccessRegister{
+    string Message = 1;
+}
+
+message UserSuccessDelete{
+    string Message = 1;
+}
+
+service APIServices {
+    rpc Login(UserLoginRequest) returns (UserAuthResponse);
+    rpc SignUp(UserSignUpRequest) returns (UserSuccessRegister);
+    rpc UsernameTaken(UsernameTakenRequest) returns (UsernameisTaken);
+    rpc DeleteUser(UserDeleteRequest) returns (UserSuccessDelete);
+    // rpc RegisterDevice(DeviceRequest) returns (DeviceSuccessRegister);
+    // rpc UpdateDevice (DeviceRequest) returns (SuccessUpdate);
+    // rpc DeleteDevice (DeviceRequest) returns (SuccessDelete);
 }

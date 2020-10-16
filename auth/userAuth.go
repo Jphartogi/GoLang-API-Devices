@@ -32,18 +32,16 @@ func goDotEnvVariable(key string) string {
 
 var mySigningKey = []byte(goDotEnvVariable("SECRET_KEY"))
 
-// TokenGenerator is to generate a Token to be consumed for API usage
-func TokenGenerator(device *global.NewDevice) (string, time.Time, error) {
-
+//UserTokenGenerator is to generate token for user
+func UserTokenGenerator(user *global.User) (string, error) {
 	token := jwt.New(jwt.SigningMethodHS256)
 
 	claims := token.Claims.(jwt.MapClaims)
 	expiredTime := time.Now().Add(time.Minute * 10)
 
 	claims["authorized"] = true
-	claims["device_name"] = device.DeviceName
-	claims["username"] = device.Username
-	claims["password"] = device.Password
+	claims["username"] = user.Username
+	claims["password"] = user.Password
 	claims["exp"] = expiredTime
 
 	signedToken, err := token.SignedString(mySigningKey)
@@ -52,12 +50,12 @@ func TokenGenerator(device *global.NewDevice) (string, time.Time, error) {
 		panic(err)
 	}
 
-	return signedToken, expiredTime, nil
+	return signedToken, err
 }
 
 // HashPassword is a function to hashed the password of a registered device
-func HashPassword(device *global.NewDevice) ([]byte, string, error) {
-	pass := &device.Password
+func HashPassword(user *global.User) ([]byte, string, error) {
+	pass := &user.Password
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(*pass), 10)
 	if err != nil {
 		panic(err)
@@ -68,13 +66,41 @@ func HashPassword(device *global.NewDevice) ([]byte, string, error) {
 //AuthorizeUser is function to authorize wheter the user has registered or not
 func AuthorizeUser(user *global.User) (bool, error) {
 	// username, password := user.Username, user.Password
+	log.Printf(user.Username)
 	result, err := database.RetrieveUserData(bson.M{"userName": user.Username})
 	if err != nil {
-		log.Fatal(err)
+		return false, errors.New(err.Error())
 	}
 	if bcrypt.CompareHashAndPassword([]byte(result.Password), []byte(user.Password)) != nil {
 		return false, errors.New("Wrong credentials")
 	}
 
 	return true, nil
+}
+
+//RegisterUser is handler function to add user and password to DB
+func RegisterUser(user *global.User) (bool, error) {
+	var newUser global.User
+	_, stringHashedPassword, err := HashPassword(user)
+	if err != nil {
+		log.Fatal(err)
+	}
+	newUser.Username = user.Username
+	newUser.Password = stringHashedPassword
+	e := database.AddUsertoDB(&newUser)
+	if e != nil {
+		log.Fatal(e)
+	}
+	return true, nil
+}
+
+//DeleteUser is a handler function to delete user from DB
+func DeleteUser(user *global.User) (bool, error) {
+	var newUser global.User
+	newUser.Username = user.Username
+	res, e := database.DeleteUserFromDB(&newUser)
+	if e != nil {
+		return res, e
+	}
+	return res, nil
 }
