@@ -107,6 +107,7 @@ func (apiServer) RegisterDevice(_ context.Context, input *proto.DeviceRequest) (
 	devices.DeviceLocation = deviceLocation
 	devices.DeviceCategory = deviceCategory
 	id, token, err := auth.RegisterDevice(&devices)
+	log.Print(token)
 	if err != nil {
 		return &proto.DeviceSuccessRegister{}, errors.New("Error in registering the device")
 	}

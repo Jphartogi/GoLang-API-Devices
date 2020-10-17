@@ -27,3 +27,16 @@ type DeviceList struct {
 	DeviceCategory string `bson:"deviceCategory"`
 	DeviceLocation string `bson:"deviceLocation"`
 }
+
+//DeviceAuth is a struct for device data and its token
+type DeviceAuth struct {
+	Data  DeviceData
+	Token string
+}
+
+//DeviceData is a struct for device data
+type DeviceData struct {
+	DeviceID    string    `bson:"deviceId"`
+	DeviceValue int       `bson:"deviceValue"`
+	TimeStamp   time.Time `bson:"timestamp"`
+}

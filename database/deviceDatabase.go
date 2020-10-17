@@ -64,6 +64,16 @@ func UpdateDeviceOnDB(device *global.NewDevice) (bool, error) {
 	return true, nil
 }
 
+//StoreDataToDatabase is a function to store device data to database
+func StoreDataToDatabase(data *global.DeviceData) error {
+	data.TimeStamp = time.Now().Local()
+	_, err := DB.Collection("deviceData").InsertOne(context.Background(), *data)
+	if err != nil {
+		log.Fatalln("Error on inserting new devices", err)
+	}
+	return nil
+}
+
 // UUIDGenerator is a func who generate new UUID for new devices
 func UUIDGenerator() uuid.UUID {
 	uuid := uuid.NewV4()

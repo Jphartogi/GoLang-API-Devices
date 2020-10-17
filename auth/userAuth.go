@@ -30,8 +30,6 @@ func goDotEnvVariable(key string) string {
 	return os.Getenv(key)
 }
 
-var mySigningKey = []byte(goDotEnvVariable("SECRET_KEY"))
-
 //UserTokenGenerator is to generate token for user
 func UserTokenGenerator(user *global.User) (string, error) {
 	token := jwt.New(jwt.SigningMethodHS256)
