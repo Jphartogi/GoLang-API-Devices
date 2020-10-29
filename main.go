@@ -123,17 +123,40 @@ func (apiServer) RegisterDevice(_ context.Context, input *proto.DeviceRequest) (
 // }
 
 func main() {
+	port := 9001
+	address := fmt.Sprintf(":%d", port)
 	server := grpc.NewServer()
 	proto.RegisterAPIServicesServer(server, apiServer{})
-	listener, err := net.Listen("tcp", ":5000")
+	listener, err := net.Listen("tcp", address)
 	if err != nil {
 		log.Fatal("Error creating listener: ", err.Error())
 	}
-	fmt.Println("Start serving grpc in port :5000")
 
 	// for RestAPI request handler
 	go requestHandle()
-	server.Serve(listener)
+	// go func() {
+	log.Fatal("Serving gRPC: ", server.Serve(listener).Error())
+	// }()
+
+	// grpcWebServer := grpcweb.WrapServer(server)
+	// httpServer := &http.Server{
+	// 	Addr: ":9001",
+	// 	Handler: h2c.NewHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	// 		if r.ProtoMajor == 2 {
+	// 			grpcWebServer.ServeHTTP(w, r)
+	// 		} else {
+	// 			w.Header().Set("Access-Control-Allow-Origin", "*")
+	// 			w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
+	// 			w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, X-User-Agent, X-Grpc-Web")
+	// 			w.Header().Set("grpc-status", "")
+	// 			w.Header().Set("grpc-message", "")
+	// 			if grpcWebServer.IsGrpcWebRequest(r) {
+	// 				grpcWebServer.ServeHTTP(w, r)
+	// 			}
+	// 		}
+	// 	}), &http2.Server{}),
+	// }
+	// log.Fatal("Serving Proxy: ", httpServer.ListenAndServe().Error())
 
 }
 

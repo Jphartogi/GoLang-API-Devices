@@ -7,10 +7,13 @@ services:
         ports:
             - 8092:8092
             - 5000:5000
+            - 9001:9001
         depends_on:
             - database
         networks: 
             - app-network
+        restart: always
+
     database:
         container_name: database
         image: mongo:4.0.20-xenial

@@ -14,7 +14,9 @@ import (
 )
 
 const (
-	dburi       = "mongodb://localhost:27017"
+	// dburi       = "mongodb://localhost:27017"
+	// uri for docker integration
+	dburi       = "mongodb://database:27017"
 	dbname      = "api"
 	testDBname  = "testAPI"
 	performance = 100
