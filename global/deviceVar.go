@@ -2,13 +2,10 @@ package global
 
 import "time"
 
-// Message is a token struct standard message
-type Message struct {
-	Message    string
-	DeviceInfo NewDevice
-	Token      string
-	CreatedAt  time.Time
-	ExpiredAt  time.Time
+// DeviceDataSearch is a token struct standard message
+type DeviceDataSearch struct {
+	Username string
+	Token    string
 }
 
 // NewDevice struct data type for creating device
@@ -17,6 +14,7 @@ type NewDevice struct {
 	DeviceName     string    `bson:"deviceName"`
 	DeviceCategory string    `bson:"deviceCategory"`
 	DeviceLocation string    `bson:"deviceLocation"`
+	Username       string    `bson:"userName"`
 	CreatedAt      time.Time `bson:"createdAt"`
 }
 
@@ -26,6 +24,8 @@ type DeviceList struct {
 	DeviceName     string `bson:"deviceName"`
 	DeviceCategory string `bson:"deviceCategory"`
 	DeviceLocation string `bson:"deviceLocation"`
+	Username       string `bson:"userName"`
+	Token          string
 }
 
 //DeviceAuth is a struct for device data and its token

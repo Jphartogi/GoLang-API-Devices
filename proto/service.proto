@@ -2,11 +2,15 @@ syntax = "proto3";
 
 package proto;
 
-
+// This is the Device section
+// For all User message
+// All the data type and format is stored here
+/******************************** Device Section ***************************/
 message DeviceRequest{
     string DeviceName = 1;
     string DeviceCategory = 2;
     string DeviceLocation = 3;
+    string Username = 4;
 }
 
 message DeviceSuccessRegister{
@@ -14,11 +18,22 @@ message DeviceSuccessRegister{
     string DeviceToken = 2;
 }
 
+message DeviceGetDataRequest{
+    string Username = 1;
+    string DeviceToken = 2;
+}
+
+message DeviceDataResponse{
+    repeated DeviceUpdateRequest Data = 1;
+}
+
 message DeviceUpdateRequest{
     string DeviceID = 1;
     string DeviceName = 2;
     string DeviceCategory = 3;
     string DeviceLocation = 4;
+    string Username = 5;
+    string DeviceToken = 6;
 }
 
 message DeviceSuccessUpdate {
@@ -27,13 +42,20 @@ message DeviceSuccessUpdate {
 
 message DeviceDeleteRequest{
     string DeviceID = 1;
-    string DeviceToken = 2;
+    string Username = 2;
+    string DeviceToken = 3;
 }
 
 message DeviceSuccessDelete {
     string DeviceID = 1;
 }
 
+/******************************** End Device Section ***************************/
+
+// This is the User section
+// For all User message
+// All the data type and format is stored here
+/******************************** User Section ***************************/
 message UserLoginRequest{
     string Username = 1;
     string Password = 2;
@@ -65,7 +87,7 @@ message UserSuccessRegister{
 message UserSuccessDelete{
     string Message = 1;
 }
-
+/******************************** End User Section ***************************/
 service APIServices {
     rpc Login(UserLoginRequest) returns (UserAuthResponse);
     rpc SignUp(UserSignUpRequest) returns (UserSuccessRegister);
@@ -73,5 +95,6 @@ service APIServices {
     rpc DeleteUser(UserDeleteRequest) returns (UserSuccessDelete);
     rpc RegisterDevice(DeviceRequest) returns (DeviceSuccessRegister);
     rpc UpdateDevice (DeviceUpdateRequest) returns (DeviceSuccessUpdate);
+    rpc GetDeviceData (DeviceGetDataRequest) returns (DeviceDataResponse);
     // rpc DeleteDevice (DeviceDeleteRequest) returns (DeviceSuccessDelete);
 }

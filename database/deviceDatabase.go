@@ -44,14 +44,15 @@ func AddDevicesToDB(device *global.NewDevice) (string, error) {
 }
 
 //UpdateDeviceOnDB function to update the device on DB
-func UpdateDeviceOnDB(device *global.NewDevice) (bool, error) {
+func UpdateDeviceOnDB(device *global.DeviceList) (bool, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel() // releases resources if slowOperation completes before timeout elapses
 	updateItems := bson.M{
 		"$set": bson.M{
 			"deviceName":     device.DeviceName,
 			"deviceCategory": device.DeviceCategory,
-			"deviceLocation": device.DeviceLocation},
+			"deviceLocation": device.DeviceLocation,
+			"userName":       device.Username},
 	}
 	_, err := DB.Collection("devices").UpdateOne(
 		ctx,
@@ -64,20 +65,23 @@ func UpdateDeviceOnDB(device *global.NewDevice) (bool, error) {
 	return true, nil
 }
 
-//StoreDataToDatabase is a function to store device data to database
-func StoreDataToDatabase(data *global.DeviceData) error {
+//StoreDeviceDataToDatabase is a function to store device data to database
+func StoreDeviceDataToDatabase(data *global.DeviceData) error {
 	data.TimeStamp = time.Now().Local()
 	_, err := DB.Collection("deviceData").InsertOne(context.Background(), *data)
 	if err != nil {
-		log.Fatalln("Error on inserting new devices", err)
+		log.Fatalln("Error on inserting device data", err)
 	}
 	return nil
 }
 
+// //GetListOfDeviceByUsername function to access database to search all device registered to user
+// func GetListOfDeviceByUsername(data *global.DeviceDataSearch) (global.DataSearchResult, error) {
+
+// }
+
 // UUIDGenerator is a func who generate new UUID for new devices
 func UUIDGenerator() uuid.UUID {
 	uuid := uuid.NewV4()
-
 	return uuid
-
 }

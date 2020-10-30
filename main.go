@@ -80,16 +80,18 @@ func (apiServer) DeleteUser(_ context.Context, input *proto.UserDeleteRequest) (
 }
 
 func (apiServer) UpdateDevice(_ context.Context, input *proto.DeviceUpdateRequest) (*proto.DeviceSuccessUpdate, error) {
-	id, name, location, category := input.GetDeviceID(), input.GetDeviceName(), input.GetDeviceLocation(), input.GetDeviceCategory()
+	id, name, location, category, username, token := input.GetDeviceID(), input.GetDeviceName(), input.GetDeviceLocation(), input.GetDeviceCategory(), input.GetUsername(), input.GetDeviceToken()
 	if id == "" {
 		return &proto.DeviceSuccessUpdate{}, errors.New("Please specify the ID of the device")
 	}
 	//TODO search in database first the initial value, so when it is empty, get the initial value
-	var devices global.NewDevice
+	var devices global.DeviceList
 	devices.DeviceID = id
 	devices.DeviceName = name
 	devices.DeviceLocation = location
 	devices.DeviceCategory = category
+	devices.Username = username
+	devices.Token = token
 	_, err := auth.UpdateDevice(&devices)
 	if err != nil {
 		return &proto.DeviceSuccessUpdate{}, err
@@ -98,27 +100,57 @@ func (apiServer) UpdateDevice(_ context.Context, input *proto.DeviceUpdateReques
 }
 
 func (apiServer) RegisterDevice(_ context.Context, input *proto.DeviceRequest) (*proto.DeviceSuccessRegister, error) {
-	deviceName, deviceCategory, deviceLocation := input.GetDeviceName(), input.GetDeviceCategory(), input.GetDeviceLocation()
-	if deviceName == "" || deviceCategory == "" || deviceLocation == "" {
+	deviceName, deviceCategory, deviceLocation, username := input.GetDeviceName(), input.GetDeviceCategory(), input.GetDeviceLocation(), input.GetUsername()
+	if deviceName == "" || deviceCategory == "" || deviceLocation == "" || username == "" {
 		return &proto.DeviceSuccessRegister{}, errors.New("Please insert all the required field")
 	}
 	var devices global.NewDevice
 	devices.DeviceName = deviceName
 	devices.DeviceLocation = deviceLocation
 	devices.DeviceCategory = deviceCategory
+	devices.Username = username
 	id, token, err := auth.RegisterDevice(&devices)
-	log.Print(token)
 	if err != nil {
 		return &proto.DeviceSuccessRegister{}, errors.New("Error in registering the device")
 	}
 	return &proto.DeviceSuccessRegister{DeviceID: id, DeviceToken: token}, nil
 }
 
-// func (apiServer) UpdateDevice(_ context.Context, input *proto.DeviceRequest) (*proto.SuccessUpdate, error) {
+func (apiServer) GetDeviceData(_ context.Context, input *proto.DeviceGetDataRequest) (*proto.DeviceDataResponse, error) {
+	username, token := input.GetUsername(), input.GetDeviceToken()
+	if username == "" || token == "" {
+		return &proto.DeviceDataResponse{}, errors.New("Please insert all the required field")
+	}
+	var dev global.DeviceDataSearch
+	dev.Token = token
+	dev.Username = username
+	res, err := auth.GetDeviceData(&dev)
+	if err != nil {
+		return &proto.DeviceDataResponse{}, errors.New("Errors on getting the data")
+	}
 
-// }
+	var resultList []*proto.DeviceUpdateRequest
+	for _, x := range res {
+		var p proto.DeviceUpdateRequest
 
-// func (apiServer) DeleteDevice(_ context.Context, input *proto.DeviceDeleteRequest) (*proto.SuccessUpdate, error) {
+		p.DeviceID = x.DeviceID
+		p.DeviceName = x.DeviceName
+		p.DeviceCategory = x.DeviceCategory
+		p.DeviceLocation = x.DeviceLocation
+		p.Username = x.Username
+
+		// dlist = append(dlist, &x)
+		resultList = append(resultList, &p)
+
+	}
+
+	finalResult := proto.DeviceDataResponse{}
+	finalResult.Data = resultList
+
+	return &finalResult, nil
+}
+
+// func (apiServer) DeleteDevice(_ context.Context, input *proto.DeviceDeleteRequest) (*proto.DeviceSuccessDelete, error) {
 
 // }
 
