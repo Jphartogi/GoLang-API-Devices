@@ -4,6 +4,7 @@ import (
 	"api/database"
 	"api/global"
 	"errors"
+	"fmt"
 	"os"
 	"time"
 
@@ -29,6 +30,8 @@ func goDotEnvVariable(key string) string {
 	return os.Getenv(key)
 }
 
+var mySigningKeyUser = []byte(goDotEnvVariable("SECRET_KEY_USER"))
+
 //UserTokenGenerator is to generate token for user
 func UserTokenGenerator(user *global.User) (string, error) {
 	token := jwt.New(jwt.SigningMethodHS256)
@@ -41,13 +44,36 @@ func UserTokenGenerator(user *global.User) (string, error) {
 	claims["password"] = user.Password
 	claims["exp"] = expiredTime
 
-	signedToken, err := token.SignedString(mySigningKey)
+	signedToken, err := token.SignedString(mySigningKeyUser)
 
 	if err != nil {
 		panic(err)
 	}
 
 	return signedToken, err
+}
+
+func validateUserToken(tokenString string) (bool, error) {
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		// Don't forget to validate the alg is what you expect:
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
+		}
+
+		// hmacSampleSecret is a []byte containing your secret, e.g. []byte("my_secret_key")
+		return mySigningKeyUser, nil
+	})
+
+	if err != nil {
+		return false, err
+	}
+
+	if _, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+		return true, nil
+	}
+
+	return false, err
+
 }
 
 // HashPassword is a function to hashed the password of a registered device

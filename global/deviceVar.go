@@ -10,11 +10,12 @@ type DeviceDataSearch struct {
 
 // NewDevice struct data type for creating device
 type NewDevice struct {
-	DeviceID       string    `bson:"deviceId"`
-	DeviceName     string    `bson:"deviceName"`
-	DeviceCategory string    `bson:"deviceCategory"`
-	DeviceLocation string    `bson:"deviceLocation"`
-	Username       string    `bson:"userName"`
+	DeviceID       string `bson:"deviceId"`
+	DeviceName     string `bson:"deviceName"`
+	DeviceCategory string `bson:"deviceCategory"`
+	DeviceLocation string `bson:"deviceLocation"`
+	Username       string `bson:"userName"`
+	UserToken      string
 	CreatedAt      time.Time `bson:"createdAt"`
 }
 

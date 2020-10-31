@@ -29,7 +29,7 @@ func (apiServer) Login(_ context.Context, in *proto.UserLoginRequest) (*proto.Us
 		return &proto.UserAuthResponse{}, err
 	}
 	token, err := auth.UserTokenGenerator(&user)
-	return &proto.UserAuthResponse{Token: token}, nil
+	return &proto.UserAuthResponse{UserToken: token}, nil
 
 }
 
@@ -94,24 +94,28 @@ func (apiServer) UpdateDevice(_ context.Context, input *proto.DeviceUpdateReques
 	devices.Token = token
 	_, err := auth.UpdateDevice(&devices)
 	if err != nil {
-		return &proto.DeviceSuccessUpdate{}, err
+		return &proto.DeviceSuccessUpdate{}, errors.New("Error in updating the device " + err.Error())
 	}
 	return &proto.DeviceSuccessUpdate{DeviceID: id}, nil
 }
 
 func (apiServer) RegisterDevice(_ context.Context, input *proto.DeviceRequest) (*proto.DeviceSuccessRegister, error) {
-	deviceName, deviceCategory, deviceLocation, username := input.GetDeviceName(), input.GetDeviceCategory(), input.GetDeviceLocation(), input.GetUsername()
+	deviceName, deviceCategory, deviceLocation, username, token := input.GetDeviceName(), input.GetDeviceCategory(), input.GetDeviceLocation(), input.GetUsername(), input.GetUserToken()
 	if deviceName == "" || deviceCategory == "" || deviceLocation == "" || username == "" {
 		return &proto.DeviceSuccessRegister{}, errors.New("Please insert all the required field")
+	}
+	if token == "" {
+		return &proto.DeviceSuccessRegister{}, errors.New("Please insert your user token")
 	}
 	var devices global.NewDevice
 	devices.DeviceName = deviceName
 	devices.DeviceLocation = deviceLocation
 	devices.DeviceCategory = deviceCategory
 	devices.Username = username
+	devices.UserToken = token
 	id, token, err := auth.RegisterDevice(&devices)
 	if err != nil {
-		return &proto.DeviceSuccessRegister{}, errors.New("Error in registering the device")
+		return &proto.DeviceSuccessRegister{}, errors.New("Error in registering the device " + err.Error())
 	}
 	return &proto.DeviceSuccessRegister{DeviceID: id, DeviceToken: token}, nil
 }
@@ -126,7 +130,7 @@ func (apiServer) GetDeviceData(_ context.Context, input *proto.DeviceGetDataRequ
 	dev.Username = username
 	res, err := auth.GetDeviceData(&dev)
 	if err != nil {
-		return &proto.DeviceDataResponse{}, errors.New("Errors on getting the data")
+		return &proto.DeviceDataResponse{}, errors.New("Errors on getting the data" + err.Error())
 	}
 
 	var resultList []*proto.DeviceUpdateRequest

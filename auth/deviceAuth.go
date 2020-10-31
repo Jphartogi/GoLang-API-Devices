@@ -12,6 +12,14 @@ import (
 
 //RegisterDevice is a function to register a device
 func RegisterDevice(device *global.NewDevice) (string, string, error) {
+	auth, errs := validateUserToken(device.UserToken)
+	if errs != nil {
+		return "", "", errors.New("Token is invalid")
+	}
+	if !auth {
+		return "", "", errors.New("Authentication Failed")
+	}
+
 	id, err := database.AddDevicesToDB(device)
 	if err != nil {
 		return "", "", errors.New("Failed to register device to DB" + err.Error())
@@ -27,7 +35,7 @@ func RegisterDevice(device *global.NewDevice) (string, string, error) {
 
 //UpdateDevice function handler to update the device using its device ID
 func UpdateDevice(device *global.DeviceList) (bool, error) {
-	auth, errs := validateToken(device.Token)
+	auth, errs := validateDeviceToken(device.Token)
 	if errs != nil {
 		return false, errors.New("Token is invalid")
 	}
@@ -44,7 +52,7 @@ func UpdateDevice(device *global.DeviceList) (bool, error) {
 
 //GetDeviceData is a function to retrieve device data by username
 func GetDeviceData(device *global.DeviceDataSearch) ([]*global.DeviceList, error) {
-	auth, err := validateToken(device.Token)
+	auth, err := validateDeviceToken(device.Token)
 	if err != nil {
 		return []*global.DeviceList{}, errors.New("Token is invalid")
 	}
@@ -62,7 +70,7 @@ func GetDeviceData(device *global.DeviceDataSearch) ([]*global.DeviceList, error
 
 //StoreDeviceData is a middleware to store device data and auth the token first
 func StoreDeviceData(data *global.DeviceAuth) (bool, error) {
-	auth, err := validateToken(data.Token)
+	auth, err := validateDeviceToken(data.Token)
 	if err != nil {
 		return false, errors.New("Token is invalid")
 	}
@@ -80,9 +88,9 @@ func StoreDeviceData(data *global.DeviceAuth) (bool, error) {
 
 /************************** Helper Function *********************/
 
-var mySigningKey = []byte(goDotEnvVariable("SECRET_KEY"))
+var mySigningKeyDevice = []byte(goDotEnvVariable("SECRET_KEY_DEVICE"))
 
-func validateToken(tokenString string) (bool, error) {
+func validateDeviceToken(tokenString string) (bool, error) {
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		// Don't forget to validate the alg is what you expect:
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
@@ -90,7 +98,7 @@ func validateToken(tokenString string) (bool, error) {
 		}
 
 		// hmacSampleSecret is a []byte containing your secret, e.g. []byte("my_secret_key")
-		return mySigningKey, nil
+		return mySigningKeyDevice, nil
 	})
 
 	if err != nil {
@@ -117,7 +125,7 @@ func DeviceTokenGenerator(device *global.NewDevice) (string, error) {
 	claims["device_name"] = device.DeviceName
 	// claims["exp"] = expiredTime
 
-	signedToken, err := token.SignedString(mySigningKey)
+	signedToken, err := token.SignedString(mySigningKeyDevice)
 
 	if err != nil {
 		panic(err)
