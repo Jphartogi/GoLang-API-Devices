@@ -26,7 +26,7 @@ func (apiServer) Login(_ context.Context, in *proto.UserLoginRequest) (*proto.Us
 	user.Password = password
 	_, err := auth.AuthorizeUser(&user)
 	if err != nil {
-		log.Fatal(err)
+		return &proto.UserAuthResponse{}, err
 	}
 	token, err := auth.UserTokenGenerator(&user)
 	return &proto.UserAuthResponse{Token: token}, nil
@@ -48,7 +48,7 @@ func (apiServer) SignUp(_ context.Context, input *proto.UserSignUpRequest) (*pro
 	}
 	_, err := auth.RegisterUser(&user)
 	if err != nil {
-		log.Fatal(err)
+		return &proto.UserSuccessRegister{}, err
 	}
 	return &proto.UserSuccessRegister{Message: "Successfully added user to DB"}, nil
 
@@ -81,8 +81,8 @@ func (apiServer) DeleteUser(_ context.Context, input *proto.UserDeleteRequest) (
 
 func (apiServer) UpdateDevice(_ context.Context, input *proto.DeviceUpdateRequest) (*proto.DeviceSuccessUpdate, error) {
 	id, name, location, category, username, token := input.GetDeviceID(), input.GetDeviceName(), input.GetDeviceLocation(), input.GetDeviceCategory(), input.GetUsername(), input.GetDeviceToken()
-	if id == "" {
-		return &proto.DeviceSuccessUpdate{}, errors.New("Please specify the ID of the device")
+	if id == "" || username == "" || token == "" {
+		return &proto.DeviceSuccessUpdate{}, errors.New("Please specify and fill the required parameter")
 	}
 	//TODO search in database first the initial value, so when it is empty, get the initial value
 	var devices global.DeviceList

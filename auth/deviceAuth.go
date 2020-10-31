@@ -5,7 +5,6 @@ import (
 	"api/global"
 	"errors"
 	"fmt"
-	"log"
 
 	"github.com/dgrijalva/jwt-go"
 	"go.mongodb.org/mongo-driver/bson"
@@ -15,13 +14,13 @@ import (
 func RegisterDevice(device *global.NewDevice) (string, string, error) {
 	id, err := database.AddDevicesToDB(device)
 	if err != nil {
-		log.Fatal(err)
+		return "", "", errors.New("Failed to register device to DB" + err.Error())
 	}
 
 	Token, errs := DeviceTokenGenerator(device)
 
 	if errs != nil {
-		log.Fatal(err)
+		return "", "", errors.New("Failed to generate Token" + err.Error())
 	}
 	return id, Token, nil
 }
@@ -30,7 +29,7 @@ func RegisterDevice(device *global.NewDevice) (string, string, error) {
 func UpdateDevice(device *global.DeviceList) (bool, error) {
 	auth, errs := validateToken(device.Token)
 	if errs != nil {
-		log.Fatal(errs)
+		return false, errors.New("Token is invalid")
 	}
 	if !auth {
 		return false, errors.New("Authentication Failed")
@@ -38,7 +37,7 @@ func UpdateDevice(device *global.DeviceList) (bool, error) {
 
 	_, err := database.UpdateDeviceOnDB(device)
 	if err != nil {
-		log.Fatal(err)
+		return false, err
 	}
 	return true, nil
 }
@@ -47,7 +46,7 @@ func UpdateDevice(device *global.DeviceList) (bool, error) {
 func GetDeviceData(device *global.DeviceDataSearch) ([]*global.DeviceList, error) {
 	auth, err := validateToken(device.Token)
 	if err != nil {
-		log.Fatal(err)
+		return []*global.DeviceList{}, errors.New("Token is invalid")
 	}
 	if !auth {
 		return []*global.DeviceList{}, errors.New("Authentication Failed")
@@ -55,7 +54,7 @@ func GetDeviceData(device *global.DeviceDataSearch) ([]*global.DeviceList, error
 
 	result, errs := database.RetrieveDeviceData(bson.M{"userName": device.Username})
 	if errs != nil {
-		log.Fatal(errs)
+		return []*global.DeviceList{}, errs
 
 	}
 	return result, nil
@@ -65,7 +64,7 @@ func GetDeviceData(device *global.DeviceDataSearch) ([]*global.DeviceList, error
 func StoreDeviceData(data *global.DeviceAuth) (bool, error) {
 	auth, err := validateToken(data.Token)
 	if err != nil {
-		log.Fatal(err)
+		return false, errors.New("Token is invalid")
 	}
 	if !auth {
 		return false, errors.New("Authentication Failed")
@@ -73,7 +72,7 @@ func StoreDeviceData(data *global.DeviceAuth) (bool, error) {
 
 	errs := database.StoreDeviceDataToDatabase(&data.Data)
 	if errs != nil {
-		log.Fatal(errs)
+		return false, errors.New("Failed to store data to DB " + err.Error())
 	}
 
 	return true, nil
@@ -94,12 +93,14 @@ func validateToken(tokenString string) (bool, error) {
 		return mySigningKey, nil
 	})
 
-	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-		fmt.Println(claims["device_name"])
+	if err != nil {
+		return false, err
+	}
+
+	if _, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
 		return true, nil
 	}
 
-	fmt.Println(err)
 	return false, err
 
 }

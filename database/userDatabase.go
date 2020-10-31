@@ -62,7 +62,7 @@ func RetrieveUserData(filter bson.M) (global.User, error) {
 	defer cancel() // releases resources if slowOperation completes before timeout elapses
 	err := DB.Collection("user").FindOne(ctx, filter).Decode(&user)
 	if err != nil {
-		return user, errors.New("Wrong login or password")
+		return user, errors.New("No Username Found")
 	}
 	return user, nil
 }
@@ -71,7 +71,7 @@ func RetrieveUserData(filter bson.M) (global.User, error) {
 func AddUsertoDB(user *global.User) error {
 	_, err := DB.Collection("user").InsertOne(context.Background(), *user)
 	if err != nil {
-		log.Fatalln("Error on inserting new user", err)
+		return err
 	}
 	return nil
 }

@@ -3,7 +3,7 @@ package database
 import (
 	"api/global"
 	"context"
-	"log"
+	"errors"
 	"time"
 
 	uuid "github.com/satori/go.uuid"
@@ -17,14 +17,14 @@ func RetrieveDeviceData(filter bson.M) ([]*global.DeviceList, error) {
 	defer cancel() // releases resources if slowOperation completes before timeout elapses
 	cur, err := DB.Collection("devices").Find(ctx, filter)
 	if err != nil {
-		log.Fatal("Error on finding documents", err)
+		return dlist, errors.New("Failed to find devices " + err.Error())
 	}
 
 	for cur.Next(context.TODO()) {
 		var x global.DeviceList
 		err = cur.Decode(&x)
 		if err != nil {
-			log.Fatal("Error on Decoding the document", err)
+			return dlist, err
 		}
 		dlist = append(dlist, &x)
 	}
@@ -38,13 +38,26 @@ func AddDevicesToDB(device *global.NewDevice) (string, error) {
 	device.CreatedAt = time.Now().Local()
 	_, err := DB.Collection("devices").InsertOne(context.Background(), *device)
 	if err != nil {
-		log.Fatalln("Error on inserting new devices", err)
+		return "", errors.New("Error on inserting new device to DB")
 	}
 	return uuid.String(), nil
 }
 
 //UpdateDeviceOnDB function to update the device on DB
 func UpdateDeviceOnDB(device *global.DeviceList) (bool, error) {
+	result, status := checkDeviceIDExist(device)
+	if !status {
+		return false, errors.New("No Device Found")
+	}
+	if device.DeviceCategory == "" {
+		device.DeviceCategory = result.DeviceCategory
+	}
+	if device.DeviceName == "" {
+		device.DeviceName = result.DeviceName
+	}
+	if device.DeviceLocation == "" {
+		device.DeviceLocation = result.DeviceLocation
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel() // releases resources if slowOperation completes before timeout elapses
 	updateItems := bson.M{
@@ -60,7 +73,7 @@ func UpdateDeviceOnDB(device *global.DeviceList) (bool, error) {
 		updateItems)
 
 	if err != nil {
-		log.Fatal(err)
+		return false, errors.New("Failed to update device " + err.Error())
 	}
 	return true, nil
 }
@@ -70,7 +83,7 @@ func StoreDeviceDataToDatabase(data *global.DeviceData) error {
 	data.TimeStamp = time.Now().Local()
 	_, err := DB.Collection("deviceData").InsertOne(context.Background(), *data)
 	if err != nil {
-		log.Fatalln("Error on inserting device data", err)
+		return err
 	}
 	return nil
 }
@@ -79,6 +92,19 @@ func StoreDeviceDataToDatabase(data *global.DeviceData) error {
 // func GetListOfDeviceByUsername(data *global.DeviceDataSearch) (global.DataSearchResult, error) {
 
 // }
+
+func checkDeviceIDExist(device *global.DeviceList) (global.DeviceList, bool) {
+	var deviceInfo global.DeviceList
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+
+	defer cancel() // releases resources if slowOperation completes before timeout elapses
+	err := DB.Collection("devices").FindOne(ctx, bson.M{"deviceId": device.DeviceID}).Decode(&deviceInfo)
+	if err != nil {
+		return deviceInfo, false
+	}
+
+	return deviceInfo, true
+}
 
 // UUIDGenerator is a func who generate new UUID for new devices
 func UUIDGenerator() uuid.UUID {

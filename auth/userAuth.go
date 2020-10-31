@@ -4,7 +4,6 @@ import (
 	"api/database"
 	"api/global"
 	"errors"
-	"log"
 	"os"
 	"time"
 
@@ -64,7 +63,6 @@ func HashPassword(user *global.User) ([]byte, string, error) {
 //AuthorizeUser is function to authorize wheter the user has registered or not
 func AuthorizeUser(user *global.User) (bool, error) {
 	// username, password := user.Username, user.Password
-	log.Printf(user.Username)
 	result, err := database.RetrieveUserData(bson.M{"userName": user.Username})
 	if err != nil {
 		return false, errors.New(err.Error())
@@ -81,13 +79,13 @@ func RegisterUser(user *global.User) (bool, error) {
 	var newUser global.User
 	_, stringHashedPassword, err := HashPassword(user)
 	if err != nil {
-		log.Fatal(err)
+		return false, errors.New("Failed to register user " + err.Error())
 	}
 	newUser.Username = user.Username
 	newUser.Password = stringHashedPassword
 	e := database.AddUsertoDB(&newUser)
 	if e != nil {
-		log.Fatal(e)
+		return false, errors.New("Failed to add user to DB" + err.Error())
 	}
 	return true, nil
 }
